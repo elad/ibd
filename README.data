@@ -14,10 +14,11 @@ is tab-delimited with four columns:
 4. allele2
 
 
-The data/chr21.23andMe.segments.gz file contains all 13,307,562 child-other IBD
-segments identified on chromosome 21 and analyzed for this paper and the 
-corresponding parent-other IBD segment(s) if any exist. Each line represents a
-single child-other segment and is tab-delimited with three columns:
+The data/chr21.23andMe.segments.{1,2}.gz files contain all 13,307,562
+child-other IBD segments identified on chromosome 21 and analyzed for this paper
+and the corresponding parent-other IBD segment(s) if any exist. It exists as two
+files to get around GitHub's 100 MB file size limit restriction. Each line
+represents a single child-other segment and is tab-delimited with three columns:
 
 1. child-other segment
 2. parent1-other segment(s)
