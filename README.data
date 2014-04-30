@@ -1,0 +1,56 @@
+This README.data file describes the files in the data/ directory that were used
+as part of the HaploScore publication:
+Durand EY, Eriksson N, and McLean CY. Reducing pervasive false positive
+identical-by-descent segments detected by large-scale pedigree analysis.
+Molecular Biology and Evolution, 2014 (in press).
+
+The data/chr21.23andMe.map.gz file contains the physical map used when detecting
+IBD segments in all pairs of individuals. Each line represents a single SNP and
+is tab-delimited with four columns:
+
+1. rsid
+2. physical position  (NCBI Build GRCh37)
+3. allele1  (ordered alphabetically)
+4. allele2
+
+
+The data/chr21.23andMe.segments.{1,2}.gz files contain all 13,307,562
+child-other IBD segments identified on chromosome 21 and analyzed for this paper
+and the corresponding parent-other IBD segment(s) if any exist. It exists as two
+files to get around GitHub's 100 MB file size limit restriction. Each line
+represents a single child-other segment and is tab-delimited with three columns:
+
+1. child-other segment
+2. parent1-other segment(s)
+3. parent2-other segment(s)
+
+The format of each segment is <start_pos>-<end_pos>(<HaploScore>), where
+<start_pos> and <end_pos> are the physical positions of the endpoints of the
+IBD segment (inclusive) and <HaploScore> is the result of the HaploScore
+calculation between the listed individual and the other individual. Multiple
+overlapping segments in a single parent, if they exist, are separated by commas.
+The first parent listed (P1) is the one used for the parent-other calculation
+based on having more SNPs in the overlapping segment (see paper for details).
+
+
+Examples:
+
+C:10-100(0.5)	P1:10-95(0.6)	P2:
+
+In the above example, the child (C) matches with an external individual from
+position 10 through position 100 and the segment has a HaploScore of 0.5. One
+parent (P1) has an IBD segment reported with the same external individual; it
+matches from position 10 through position 95 with a HaploScore of 0.6. The other
+parent has no IBD segment with the same external individual that overlaps
+positions 10-100.
+
+
+C:200-300(0.1)	P1:195-245(0.2),255-300(0.1)	P2:5-205(6.5)
+
+In this example, the child (C) matches with an external individual from
+position 200 through position 300 and the segment has a HaploScore of 0.1. Both
+parents (P1 and P2) share IBD with the same external individual in this region.
+P1 has two IBD segments in this area, one from position 195 to position 245 
+and the other from 255-300. P2 has a single IBD segment from position 5 to 
+position 205. Parents are displayed in the given order because the segments of 
+P1 overlap more of the child-other segment than those of P2 do.
