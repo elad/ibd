@@ -22,6 +22,7 @@ Cory Y. McLean  <cmclean@23andme.com>
 
 import numpy as np
 import sys
+from operator import attrgetter
 
 
 class PlinkReader(object): 
@@ -31,30 +32,48 @@ class PlinkReader(object):
     def __init__(self, pedfile, mapfile): 
         self._iid_to_individual = {}
         self._rsid_to_snp = {}
-        self._read_ped(pedfile)
         self._read_map(mapfile)
+        self._read_ped(pedfile)
         
-    def _read_ped(self, filename): 
+    def _read_map(self, filename):
+        chrom_rsids = {}
+        # Create dictionary from rsid to SNP object
+        with open(filename, "r") as ifs:
+            for mapix, line in enumerate(ifs): 
+                chrom, rsid, dist, pos = line.strip().split()
+                pos = int(pos)
+                assert rsid not in self._rsid_to_snp, "Duplicate SNP found: %s\n" % rsid
+                if chrom not in chrom_rsids:
+                    chrom_rsids[chrom] = []
+                snp = SNP(rsid, pos, mapix)
+                chrom_rsids[chrom].append(snp)
+                self._rsid_to_snp[rsid] = snp
+        self._num_snps = len(self._rsid_to_snp)
+        # Create mask from index in genome order to index in map file
+        # and add genome index information to each SNP
+        genome_order = []
+        genomeix = 0
+        for chrom in sorted(chrom_rsids.keys()):
+            for snp in sorted(chrom_rsids[chrom], key=attrgetter('pos')):
+                genome_order.append(snp.map_index)
+                snp.genome_index = genomeix
+                genomeix += 1
+        self._genome_order_mask = np.array(genome_order)
+
+    def _read_ped(self, filename):
         with open(filename, "r") as ifs: 
             for line in ifs: 
                 tokens = line.strip().split()
                 fid, iid, pid, mid, sex, phen = tokens[:6]
                 assert iid not in self._iid_to_individual, "Duplicate individual found: %s\n" % iid
                 haplotypes = np.array(tokens[6:], dtype=int)
-                hap1 = haplotypes[::2]
-                hap2 = haplotypes[1::2]
-                self._iid_to_individual[iid] = Individual(iid, hap1, hap2)
-
-    def _read_map(self, filename): 
-        with open(filename, "r") as ifs: 
-            prevpos = -1
-            for i, line in enumerate(ifs): 
-                chrom, rsid, dist, pos = line.strip().split()
-                pos = int(pos)
-                assert rsid not in self._rsid_to_snp, "Duplicate SNP found: %s\n" % rsid
-                assert pos > prevpos, "PLINK data must be in genome order"
-                prevpos = pos
-                self._rsid_to_snp[rsid] = SNP(rsid, pos, i)
+                assert len(haplotypes) == 2 * self._num_snps, "Invalid haplotype entry: %s\n" % iid
+                map_ordered_hap1 = haplotypes[::2]
+                map_ordered_hap2 = haplotypes[1::2]
+                genome_ordered_hap1 = map_ordered_hap1[self._genome_order_mask]
+                genome_ordered_hap2 = map_ordered_hap2[self._genome_order_mask]
+                ind = Individual(iid, genome_ordered_hap1, genome_ordered_hap2)
+                self._iid_to_individual[iid] = ind
 
     def get_individual(self, iid): 
         return self._iid_to_individual[iid]
@@ -67,11 +86,11 @@ class IBDSegment(object):
     """
     Class representing a GERMLINE IBD segment
     """
-    def __init__(self, iid1=None, iid2=None, rstart=None, rend=None): 
+    def __init__(self, iid1, iid2, rstart, rend): 
         self.iid1 = iid1
         self.iid2 = iid2 
-        self.rstart = rstart
-        self.rend = rend
+        self.rstart = rstart  # rsid of first SNP in IBD segment
+        self.rend = rend      # rsid of last SNP in IBD segment
 
     @classmethod
     def from_line(cls, line):
@@ -85,7 +104,8 @@ class IBDSegment(object):
 
 class Individual(object): 
     """
-    A diploid individual is represented by (iid, hap1, hap2)
+    A diploid individual is represented by (iid, hap1, hap2).
+    Haplotypes are the same length and are sorted in genome order.
     """
     def __init__(self, iid, hap1, hap2): 
         self.iid = iid
@@ -94,16 +114,16 @@ class Individual(object):
 
 class SNP(object): 
     """
-    A SNP is represented by (rsid, pos, index)
+    A SNP is represented by (rsid, pos, map_index)
     """
-    def __init__(self, rsid, pos, index): 
+    def __init__(self, rsid, pos, map_index):
         self.rsid = rsid
         self.pos = pos
-        self.index = index
+        self.map_index = map_index
 
 
 def compute_haploscore(segment, plinkdata, geno_penalty, switch_penalty):
-    start, end = [plinkdata.get_snp(rsid).index
+    start, end = [plinkdata.get_snp(rsid).genome_index
                   for rsid in [segment.rstart, segment.rend]]
     individual1 = plinkdata.get_individual(segment.iid1).haplotypes[:, start:(end+1)]
     individual2 = plinkdata.get_individual(segment.iid2).haplotypes[:, start:(end+1)]
