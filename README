@@ -1,7 +1,7 @@
 License:
 --------
-haploscore.py
-Copyright (C) 2013 23andMe, Inc.
+haploscore.py haplotypes.py ibd.py threshold.py
+Copyright (C) 2014 23andMe, Inc.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -38,26 +38,34 @@ Note that haplotype.py requires Python 2.7 and numpy 1.7.
 
 Required Input:
 ---------------
-match        GERMLINE-formatted match file. The format is described on http://www1.cs.columbia.edu/~gusev/germline/
+match        GERMLINE-formatted match file. The format is described at http://www1.cs.columbia.edu/~gusev/germline/
 ped_file     PLINK PED file containing the haplotypes used as input by GERMLINE
-map_file     PLINK MAP file containing the physical map for the markers included in the PED file. Must be in genome order
+map_file     PLINK MAP file containing the physical map for the markers included in the PED file.
 
 Options:
 --------
 --genotype_error VALUE  Set the genotyping error rate per marker to VALUE
 --switch_error VALUE    Set the switch error rate per marker to VALUE
+--filter VALUE          Set the mean overlap threshold desired to VALUE
+--threshold_file FILE   Use the specified mean overlap threshold file FILE
 -v, --verbose           Report progress to stderr
 -h, --help              Print help message
 
 Output:
 -------
-out_file  Output file. It is formatted like the match.gz file but contains an additional last column, the HaploScore value. 
+out_file  Output file. It is formatted like the match.gz file but contains an additional last column, the HaploScore value.
+          If the --filter flag is specified, input segments not satisfying the HaploScore threshold criterion will be
+          omitted from the output.
 
 Testing:
 --------
 The test/ directory contains PLINK data as well as the expected GERMLINE results. 
 The following command
 
-python haploscore.py test/expected.match test/CEU.22.ped test/CEU.22.map test/myoutfile
+  python haploscore.py test/expected.match test/CEU.22.ped test/CEU.22.map test/myoutfile
 
-should produce test/myoutfile, identical to test/expected.match.scored
+should produce test/myoutfile, identical to test/expected.match.scored. Similarly,
+
+  python haploscore.py test/expected.match test/CEU.22.mixed.ped test/CEU.22.mixed.map test/myoutfile2
+
+should produce test/myoutfile2, also identical to test/expected.match.scored.
