@@ -59,10 +59,12 @@ class ThresholdMatrix(object):
     overlap threshold values.
     """
     def __init__(self, genlens, threshold_keys, threshold_values):
-        # Ensure lengths are in sorted order and inputs are shaped correctly
+        # Ensure lengths are in sorted order, step sizes are equal,
+        # and inputs are shaped correctly
         stepsizes = genlens[1:] - genlens[:-1]
         assert np.all(stepsizes > 0)
         assert np.all(np.abs(stepsizes - stepsizes[0]) < 1e-10)
+        assert len(threshold_keys) > 0 and threshold_keys[0] == 1
         assert np.all((threshold_keys[1:] - threshold_keys[:-1]) < 0)
         assert len(threshold_values.shape) == 2
         tvx, tvy = threshold_values.shape
